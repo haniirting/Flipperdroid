@@ -41,12 +41,7 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: flipper-phone-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-                - name: Publish APK to Releases
+      - name: Publish APK to Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -54,4 +49,3 @@ jobs:
             app/build/outputs/apk/debug/app-debug.apk \
             --title "Build ${{ github.run_number }}" \
             --notes "Debug APK"
-
