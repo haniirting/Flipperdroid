@@ -38,14 +38,16 @@ jobs:
         with:
           gradle-version: 8.7
 
-      - name: Build debug APK
+      - name: Build debug APKs
         run: gradle assembleDebug --no-daemon
 
-      - name: Publish APK to Releases
+      - name: Publish APKs to Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Flipper-Phone.apk
+          cp companion/build/outputs/apk/debug/companion-debug.apk Flipper-Link.apk
           gh release create "build-${{ github.run_number }}" \
-            app/build/outputs/apk/debug/app-debug.apk \
+            Flipper-Phone.apk Flipper-Link.apk \
             --title "Build ${{ github.run_number }}" \
-            --notes "Debug APK"
+            --notes "Flipper-Phone.apk: the phone as a Flipper. Flipper-Link.apk: companion app for a real Flipper."
