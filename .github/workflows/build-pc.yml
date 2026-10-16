@@ -1,0 +1,43 @@
+name: Build PC app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unzip the PC app (flipper-desk.zip in the repository root)
+        shell: pwsh
+        run: Expand-Archive -Path flipper-desk.zip -DestinationPath . -Force
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tools
+        run: pip install pyserial pyinstaller
+
+      - name: Test the protocol layer
+        working-directory: FlipperDesk
+        run: python test_rpc.py
+
+      - name: Build FlipperDesk.exe
+        working-directory: FlipperDesk
+        run: pyinstaller --onefile --windowed --name FlipperDesk --collect-submodules serial flipper_desk.py
+
+      - name: Publish to Releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "desk-${{ github.run_number }}" FlipperDesk/dist/FlipperDesk.exe \
+            --title "Flipper Desk ${{ github.run_number }}" \
+            --notes "Flipper Desk for Windows"
