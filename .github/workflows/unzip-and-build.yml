@@ -1,0 +1,53 @@
+name: Unzip and Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          unzip -o nfc-uid-android.zip -x "nfc-uid-android/.github/*"
+          cp -r nfc-uid-android/. .
+          rm -rf nfc-uid-android
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Unzip project" || echo "Nothing to commit"
+          git push
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Build debug APKs
+        run: gradle assembleDebug --no-daemon
+
+      - name: Publish APKs to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Flipper-Phone.apk
+          cp companion/build/outputs/apk/debug/companion-debug.apk Flipper-Link.apk
+          gh release create "build-${{ github.run_number }}" \
+            Flipper-Phone.apk Flipper-Link.apk \
+            --title "Build ${{ github.run_number }}" \
+            --notes "Flipper-Phone.apk: the phone as a Flipper. Flipper-Link.apk: companion app for a real Flipper."
