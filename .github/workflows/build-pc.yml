@@ -13,9 +13,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Unzip the PC app (flipper-desk.zip in the repository root)
+      - name: Find the PC app
         shell: pwsh
-        run: Expand-Archive -Path flipper-desk.zip -DestinationPath . -Force
+        run: |
+          if (Test-Path "desktop/flipper_desk.py") {
+            $dir = "desktop"
+          } elseif (Test-Path "flipper-desk.zip") {
+            Expand-Archive -Path "flipper-desk.zip" -DestinationPath "." -Force
+            $dir = "FlipperDesk"
+          } elseif (Test-Path "nfc-uid-android.zip") {
+            Expand-Archive -Path "nfc-uid-android.zip" -DestinationPath "_src" -Force
+            $dir = "_src/nfc-uid-android/desktop"
+          } else {
+            Write-Host "Files in the repository root:"
+            Get-ChildItem | ForEach-Object { Write-Host $_.Name }
+            Write-Error "PC app not found. Upload flipper-desk.zip (or the newest nfc-uid-android.zip) to the repository root and run again."
+            exit 1
+          }
+          Write-Host "PC app folder: $dir"
+          "APP_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,11 +42,11 @@ jobs:
         run: pip install pyserial pyinstaller
 
       - name: Test the protocol layer
-        working-directory: FlipperDesk
+        working-directory: ${{ env.APP_DIR }}
         run: python test_rpc.py
 
       - name: Build FlipperDesk.exe
-        working-directory: FlipperDesk
+        working-directory: ${{ env.APP_DIR }}
         run: pyinstaller --onefile --windowed --name FlipperDesk --collect-submodules serial flipper_desk.py
 
       - name: Publish to Releases
@@ -38,6 +54,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "desk-${{ github.run_number }}" FlipperDesk/dist/FlipperDesk.exe \
+          gh release create "desk-${{ github.run_number }}" "$APP_DIR/dist/FlipperDesk.exe" \
             --title "Flipper Desk ${{ github.run_number }}" \
             --notes "Flipper Desk for Windows"
