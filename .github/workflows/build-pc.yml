@@ -47,7 +47,7 @@ jobs:
 
       - name: Build FlipperDesk.exe
         working-directory: ${{ env.APP_DIR }}
-        run: pyinstaller --onefile --windowed --name FlipperDesk --collect-submodules serial flipper_desk.py
+        run: pyinstaller --onefile --windowed --name FlipperDesk --collect-submodules serial --add-data "assets;assets" flipper_desk.py
 
       - name: Publish to Releases
         shell: bash
